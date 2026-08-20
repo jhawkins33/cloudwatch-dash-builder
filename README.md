@@ -45,10 +45,8 @@ cp .env.example .env
 
 ## Usage
 
-**Streamlit UI (recommended):**
-```bash
-streamlit run app.py
-```
+User → Streamlit UI ─┐
+User → CLI           ├→ Discovery → Widget generation → Dashboard JSON → CloudWatch API
 
 **CLI:**
 ```bash
