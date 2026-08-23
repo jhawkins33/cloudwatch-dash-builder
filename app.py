@@ -31,7 +31,7 @@ with st.sidebar:
     dashboard_name = st.text_input("Dashboard name", value="AutoDashboard")
     resource_types = st.multiselect(
         "Resource types to include",
-        options=["lambda", "kinesis_stream", "firehose", "s3"],
+        options=["lambda", "kinesis_stream", "firehose", "s3", "ec2", "rds"],
         default=["lambda", "firehose"],
     )
     st.divider()

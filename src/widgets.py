@@ -113,6 +113,51 @@ def widgets_for_s3(resource: dict, region: str, x: int, y: int) -> list:
             region, x, y
         ),
     ]
+    
+def widgets_for_ec2(resource: dict, region: str, x: int, y: int) -> list:
+    """Generate widgets for an EC2 instance."""
+    instance_id = resource.get("instance_id", resource["name"])
+    name = resource["name"]
+    ns = "AWS/EC2"
+    return [
+        _metric_widget(
+            f"EC2: {name} — CPU Utilization",
+            [[ns, "CPUUtilization", "InstanceId", instance_id]],
+            region, x, y, stat="Average"
+        ),
+        _metric_widget(
+            f"EC2: {name} — Network In/Out",
+            [
+                [ns, "NetworkIn", "InstanceId", instance_id, {"label": "Network In"}],
+                [ns, "NetworkOut", "InstanceId", instance_id, {"label": "Network Out"}],
+            ],
+            region, x + WIDGET_WIDTH, y, stat="Sum"
+        ),
+    ]
+
+
+def widgets_for_rds(resource: dict, region: str, x: int, y: int) -> list:
+    """Generate widgets for an RDS instance."""
+    name = resource["name"]
+    ns = "AWS/RDS"
+    return [
+        _metric_widget(
+            f"RDS: {name} — CPU & Connections",
+            [
+                [ns, "CPUUtilization", "DBInstanceIdentifier", name, {"label": "CPU %"}],
+                [ns, "DatabaseConnections", "DBInstanceIdentifier", name, {"label": "Connections"}],
+            ],
+            region, x, y, stat="Average"
+        ),
+        _metric_widget(
+            f"RDS: {name} — Latency",
+            [
+                [ns, "ReadLatency", "DBInstanceIdentifier", name, {"label": "Read"}],
+                [ns, "WriteLatency", "DBInstanceIdentifier", name, {"label": "Write"}],
+            ],
+            region, x + WIDGET_WIDTH, y, stat="Average"
+        ),
+    ]
 
 
 WIDGET_GENERATORS = {
@@ -120,6 +165,8 @@ WIDGET_GENERATORS = {
     "kinesis_stream": widgets_for_kinesis_stream,
     "firehose": widgets_for_firehose,
     "s3": widgets_for_s3,
+    "ec2": widgets_for_ec2,
+    "rds": widgets_for_rds,
 }
 
 

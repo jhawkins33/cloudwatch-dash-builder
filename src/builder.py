@@ -63,7 +63,7 @@ def main():
     parser = argparse.ArgumentParser(description="Build and deploy CloudWatch dashboards.")
     parser.add_argument("--name", default="AutoDashboard", help="Dashboard name")
     parser.add_argument("--types", nargs="*",
-                        choices=["lambda", "kinesis_stream", "firehose", "s3"],
+                        choices=["lambda", "kinesis_stream", "firehose", "s3", "ec2", "rds"],
                         help="Resource types to include (default: all)")
     parser.add_argument("--deploy", action="store_true", help="Deploy dashboard to CloudWatch")
     parser.add_argument("--output", default=None, help="Export dashboard JSON to this file")

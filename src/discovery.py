@@ -77,6 +77,40 @@ def discover_s3_buckets(session) -> list:
             "name": bucket["Name"],
         })
     return buckets
+    
+def discover_ec2_instances(session) -> list:
+    client = session.client("ec2")
+    paginator = client.get_paginator("describe_instances")
+    instances = []
+    for page in paginator.paginate(Filters=[{"Name": "instance-state-name", "Values": ["running"]}]):
+        for reservation in page["Reservations"]:
+            for instance in reservation["Instances"]:
+                # Use Name tag if present, otherwise instance ID
+                name = instance["InstanceId"]
+                for tag in instance.get("Tags", []):
+                    if tag["Key"] == "Name":
+                        name = tag["Value"]
+                        break
+                instances.append({
+                    "type": "ec2",
+                    "name": name,
+                    "instance_id": instance["InstanceId"],
+                })
+    return instances
+
+
+def discover_rds_instances(session) -> list:
+    client = session.client("rds")
+    paginator = client.get_paginator("describe_db_instances")
+    instances = []
+    for page in paginator.paginate():
+        for db in page["DBInstances"]:
+            instances.append({
+                "type": "rds",
+                "name": db["DBInstanceIdentifier"],
+                "engine": db.get("Engine", "unknown"),
+            })
+    return instances
 
 
 def discover_all(resource_types: list = None) -> list:
@@ -91,6 +125,8 @@ def discover_all(resource_types: list = None) -> list:
         "kinesis_stream": discover_kinesis_streams,
         "firehose": discover_firehose_streams,
         "s3": discover_s3_buckets,
+        "ec2": discover_ec2_instances,
+        "rds": discover_rds_instances,
     }
 
     if resource_types:
