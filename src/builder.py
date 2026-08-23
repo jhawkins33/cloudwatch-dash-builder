@@ -22,13 +22,14 @@ REGION = os.environ.get("AWS_REGION", "us-east-1")
 PROFILE = os.environ.get("AWS_PROFILE", "churn-mlops-personal")
 
 
-def build_dashboard(name: str, resource_types: list = None) -> dict:
+def build_dashboard(name: str, resource_types: list = None,
+                    tag_key: str = None, tag_value: str = None) -> dict:
     """Discover resources and generate a dashboard body dict."""
     from src.discovery import discover_all
     from src.widgets import generate_widgets
 
     print(f"Discovering resources...")
-    resources = discover_all(resource_types)
+    resources = discover_all(resource_types, tag_key=tag_key, tag_value=tag_value)
     print(f"Found {len(resources)} resources.")
 
     print(f"Generating widgets...")
@@ -65,11 +66,14 @@ def main():
     parser.add_argument("--types", nargs="*",
                         choices=["lambda", "kinesis_stream", "firehose", "s3", "ec2", "rds"],
                         help="Resource types to include (default: all)")
+    parser.add_argument("--tag-key", default=None, help="Filter by tag key (e.g. Project)")
+    parser.add_argument("--tag-value", default=None, help="Filter by tag value (e.g. churn-mlops)")
     parser.add_argument("--deploy", action="store_true", help="Deploy dashboard to CloudWatch")
     parser.add_argument("--output", default=None, help="Export dashboard JSON to this file")
     args = parser.parse_args()
 
-    dashboard_body = build_dashboard(args.name, args.types)
+    dashboard_body = build_dashboard(args.name, args.types,
+                                     tag_key=args.tag_key, tag_value=args.tag_value)
 
     if args.output:
         export_dashboard(dashboard_body, args.output)

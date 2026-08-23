@@ -34,18 +34,26 @@ with st.sidebar:
         options=["lambda", "kinesis_stream", "firehose", "s3", "ec2", "rds"],
         default=["lambda", "firehose"],
     )
+    tag_key = st.text_input("Filter by tag key (optional)", placeholder="e.g. Project")
+    tag_value = st.text_input("Filter by tag value (optional)", placeholder="e.g. churn-mlops")
     st.divider()
     discover_btn = st.button("Discover Resources", type="primary", use_container_width=True)
+    tag_key = st.text_input("Filter by tag key (optional)", placeholder="e.g. Project")
+    tag_value = st.text_input("Filter by tag value (optional)", placeholder="e.g. churn-mlops")
 
 # Main area
 col1, col2 = st.columns([1, 1])
 
 if discover_btn:
     with st.spinner("Scanning your AWS account..."):
-        resources = discover_all(resource_types if resource_types else None)
+        tag_k = tag_key.strip() or None
+        tag_v = tag_value.strip() or None
+        resources = discover_all(resource_types if resource_types else None,
+                                 tag_key=tag_k, tag_value=tag_v)
 
     st.session_state["resources"] = resources
-    st.session_state["dashboard_body"] = build_dashboard(dashboard_name, resource_types or None)
+    st.session_state["dashboard_body"] = build_dashboard(
+        dashboard_name, resource_types or None, tag_key=tag_k, tag_value=tag_v)
 
 if "resources" in st.session_state:
     resources = st.session_state["resources"]

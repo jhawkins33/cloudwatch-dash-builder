@@ -75,14 +75,21 @@ def discover_s3_buckets(session) -> list:
         buckets.append({
             "type": "s3",
             "name": bucket["Name"],
+            "arn": f"arn:aws:s3:::{bucket['Name']}",
         })
     return buckets
     
-def discover_ec2_instances(session) -> list:
+def discover_ec2_instances(session, tag_filter: dict = None) -> list:
     client = session.client("ec2")
     paginator = client.get_paginator("describe_instances")
+    filters = [{"Name": "instance-state-name", "Values": ["running"]}]
+    if tag_filter:
+        filters.append({
+            "Name": f"tag:{tag_filter['key']}",
+            "Values": [tag_filter["value"]],
+        })
     instances = []
-    for page in paginator.paginate(Filters=[{"Name": "instance-state-name", "Values": ["running"]}]):
+    for page in paginator.paginate(Filters=filters):
         for reservation in page["Reservations"]:
             for instance in reservation["Instances"]:
                 # Use Name tag if present, otherwise instance ID
@@ -91,11 +98,12 @@ def discover_ec2_instances(session) -> list:
                     if tag["Key"] == "Name":
                         name = tag["Value"]
                         break
-                instances.append({
-                    "type": "ec2",
-                    "name": name,
-                    "instance_id": instance["InstanceId"],
-                })
+            instances.append({
+                "type": "rds",
+                "name": db["DBInstanceIdentifier"],
+                "engine": db.get("Engine", "unknown"),
+                "arn": db.get("DBInstanceArn", ""),
+            })
     return instances
 
 
@@ -111,15 +119,40 @@ def discover_rds_instances(session) -> list:
                 "engine": db.get("Engine", "unknown"),
             })
     return instances
+    
+def filter_by_tag(resources: list, tag_key: str, tag_value: str,
+                  session) -> list:
+    """
+    Filter a list of discovered resources by tag, for resource types
+    that don't support tag filtering natively in their list/describe APIs.
+    Uses the Resource Groups Tagging API which works across most AWS services.
+    """
+    client = session.client("resourcegroupstaggingapi")
+    paginator = client.get_paginator("get_resources")
+
+    tagged_arns = set()
+    for page in paginator.paginate(
+        TagFilters=[{"Key": tag_key, "Values": [tag_value]}]
+    ):
+        for resource in page["ResourceTagMappingList"]:
+            tagged_arns.add(resource["ResourceARN"])
+
+    # Keep resources whose ARN appears in the tagged set,
+    # or resources without an ARN field (keep them and let discovery handle it)
+    return [r for r in resources if r.get("arn") in tagged_arns]
 
 
-def discover_all(resource_types: list = None) -> list:
+def discover_all(resource_types: list = None,
+                 tag_key: str = None, tag_value: str = None) -> list:
     """
     Discover all supported resource types (or a filtered subset).
     resource_types: list of strings e.g. ["lambda", "firehose"]
                    None means discover everything.
+    tag_key/tag_value: if both provided, filter results to only resources
+                       with this tag.
     """
     session = get_session()
+    tag_filter = {"key": tag_key, "value": tag_value} if tag_key and tag_value else None
     all_types = {
         "lambda": discover_lambda_functions,
         "kinesis_stream": discover_kinesis_streams,
@@ -137,11 +170,20 @@ def discover_all(resource_types: list = None) -> list:
     resources = []
     for rtype, fn in selected.items():
         try:
-            found = fn(session)
+            # EC2 supports native tag filtering; others use post-filter
+            if rtype == "ec2" and tag_filter:
+                found = fn(session, tag_filter=tag_filter)
+            else:
+                found = fn(session)
             resources.extend(found)
             print(f"  {rtype}: {len(found)} found")
         except Exception as e:
             print(f"  {rtype}: error — {e}")
+
+    if tag_key and tag_value and resources:
+        print(f"  Filtering by tag {tag_key}={tag_value}...")
+        resources = filter_by_tag(resources, tag_key, tag_value, session)
+        print(f"  {len(resources)} resources match the tag filter.")
 
     return resources
 
