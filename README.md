@@ -29,6 +29,8 @@ Streamlit UI (interactive)
 | Kinesis Data Stream | Put/Get Records, throttling |
 | Kinesis Firehose | Delivery success, data freshness lag |
 | S3 | Object count, bucket size |
+| EC2 | CPUUtilization, NetworkIn/Out |
+| RDS | CPUUtilization, DatabaseConnections, ReadLatency, WriteLatency |
 
 ## Setup
 
@@ -66,7 +68,7 @@ python src/builder.py --name "MyDashboard" --deploy
 - [x] Per-resource metric widget generation
 - [x] CloudWatch dashboard deployment via API
 - [x] Streamlit UI with resource preview and one-click deploy
-- [ ] Add EC2 and RDS support
+- [x] Add EC2 and RDS support
 - [ ] Filter resources by tag (e.g. only show resources tagged `Project=churn-mlops`)
 - [ ] Dashboard update mode (update existing rather than replace)
 - [ ] Scheduled auto-refresh (rebuild dashboard as resources change)
