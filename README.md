@@ -61,6 +61,8 @@ python src/builder.py --name "MyDashboard" --types lambda s3 --output dashboard.
 # Deploy directly to CloudWatch
 python src/builder.py --name "MyDashboard" --deploy
 ```
+# Filter by tag
+python src/builder.py --name "MyDashboard" --tag-key Project --tag-value churn-mlops --deploy
 
 ## Roadmap
 
@@ -69,6 +71,6 @@ python src/builder.py --name "MyDashboard" --deploy
 - [x] CloudWatch dashboard deployment via API
 - [x] Streamlit UI with resource preview and one-click deploy
 - [x] Add EC2 and RDS support
-- [ ] Filter resources by tag (e.g. only show resources tagged `Project=churn-mlops`)
+- [x] Filter resources by tag (e.g. only show resources tagged `Project=churn-mlops`)
 - [ ] Dashboard update mode (update existing rather than replace)
 - [ ] Scheduled auto-refresh (rebuild dashboard as resources change)
