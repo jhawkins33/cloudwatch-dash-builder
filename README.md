@@ -8,9 +8,10 @@ Anyone who's spun up a new AWS service knows the pain of manually building Cloud
 
 ## Architecture
 
-Discovery (boto3) → Widget generation → Dashboard JSON → CloudWatch API
-↓
-Streamlit UI (interactive)
+```
+User → Streamlit UI ─┐
+User → CLI           ├→ Discovery → Widget generation → Dashboard JSON → CloudWatch API
+```
 
 ## What's here
 
@@ -58,11 +59,16 @@ python src/builder.py --name "MyDashboard" --types lambda firehose
 # Export to JSON for review
 python src/builder.py --name "MyDashboard" --types lambda s3 --output dashboard.json
 
+```bash
 # Deploy directly to CloudWatch
 python src/builder.py --name "MyDashboard" --deploy
-```
+
+# Update existing dashboard (merge, don't replace)
+python src/builder.py --name "MyDashboard" --types ec2 --deploy --update
+
 # Filter by tag
 python src/builder.py --name "MyDashboard" --tag-key Project --tag-value churn-mlops --deploy
+```
 
 ## Roadmap
 
@@ -72,5 +78,5 @@ python src/builder.py --name "MyDashboard" --tag-key Project --tag-value churn-m
 - [x] Streamlit UI with resource preview and one-click deploy
 - [x] Add EC2 and RDS support
 - [x] Filter resources by tag (e.g. only show resources tagged `Project=churn-mlops`)
-- [ ] Dashboard update mode (update existing rather than replace)
+- [x] Dashboard update mode (update existing rather than replace)
 - [ ] Scheduled auto-refresh (rebuild dashboard as resources change)
