@@ -98,12 +98,12 @@ def discover_ec2_instances(session, tag_filter: dict = None) -> list:
                     if tag["Key"] == "Name":
                         name = tag["Value"]
                         break
-            instances.append({
-                "type": "rds",
-                "name": db["DBInstanceIdentifier"],
-                "engine": db.get("Engine", "unknown"),
-                "arn": db.get("DBInstanceArn", ""),
-            })
+                instances.append({
+                    "type": "ec2",
+                    "name": name,
+                    "instance_id": instance["InstanceId"],
+                    "arn": f"arn:aws:ec2:{REGION}::instance/{instance['InstanceId']}",
+                })
     return instances
 
 

@@ -38,18 +38,77 @@ def build_dashboard(name: str, resource_types: list = None,
 
     dashboard_body = {"widgets": widgets}
     return dashboard_body
-
-
-def deploy_dashboard(name: str, dashboard_body: dict):
-    """Deploy the dashboard to CloudWatch."""
+    
+def get_dashboard(name: str) -> dict | None:
+    """
+    Fetch an existing CloudWatch dashboard by name.
+    Returns the parsed dashboard body dict, or None if it doesn't exist.
+    """
     session = boto3.Session(profile_name=PROFILE, region_name=REGION)
     cw = session.client("cloudwatch")
+    try:
+        response = cw.get_dashboard(DashboardName=name)
+        return json.loads(response["DashboardBody"])
+    except cw.exceptions.DashboardNotFoundError:
+        return None
 
+
+def merge_widgets(existing_body: dict, new_body: dict) -> dict:
+    """
+    Merge new widgets into an existing dashboard.
+    - Widgets with the same title as an existing widget replace it.
+    - Widgets with new titles are appended.
+    - Widgets in the existing dashboard not touched by the new set are kept.
+    """
+    existing_widgets = existing_body.get("widgets", [])
+    new_widgets = new_body.get("widgets", [])
+
+    # Index existing widgets by title for fast lookup
+    existing_by_title = {
+        w["properties"]["title"]: w
+        for w in existing_widgets
+        if "properties" in w and "title" in w["properties"]
+    }
+
+    new_titles = {
+        w["properties"]["title"]
+        for w in new_widgets
+        if "properties" in w and "title" in w["properties"]
+    }
+
+    # Keep existing widgets that aren't being replaced
+    kept = [w for w in existing_widgets
+            if w.get("properties", {}).get("title") not in new_titles]
+
+    merged = kept + new_widgets
+    print(f"  Merge: {len(kept)} existing kept, {len(new_widgets)} new/updated, "
+          f"{len(merged)} total widgets.")
+    return {"widgets": merged}
+
+
+def deploy_dashboard(name: str, dashboard_body: dict, update: bool = False):
+    """
+    Deploy the dashboard to CloudWatch.
+    update=True: merge new widgets into the existing dashboard (preserving
+                 any manual customizations) rather than replacing it entirely.
+    update=False: replace the dashboard wholesale (default).
+    """
+    if update:
+        existing = get_dashboard(name)
+        if existing:
+            print(f"Updating existing dashboard '{name}'...")
+            dashboard_body = merge_widgets(existing, dashboard_body)
+        else:
+            print(f"Dashboard '{name}' not found — creating fresh.")
+
+    session = boto3.Session(profile_name=PROFILE, region_name=REGION)
+    cw = session.client("cloudwatch")
     cw.put_dashboard(
         DashboardName=name,
         DashboardBody=json.dumps(dashboard_body),
     )
-    print(f"Dashboard '{name}' deployed to CloudWatch.")
+    action = "updated" if update else "deployed"
+    print(f"Dashboard '{name}' {action} in CloudWatch.")
     print(f"View at: https://{REGION}.console.aws.amazon.com/cloudwatch/home?region={REGION}#dashboards:name={name}")
 
 
@@ -69,6 +128,7 @@ def main():
     parser.add_argument("--tag-key", default=None, help="Filter by tag key (e.g. Project)")
     parser.add_argument("--tag-value", default=None, help="Filter by tag value (e.g. churn-mlops)")
     parser.add_argument("--deploy", action="store_true", help="Deploy dashboard to CloudWatch")
+    parser.add_argument("--update", action="store_true", help="Merge into existing dashboard instead of replacing")
     parser.add_argument("--output", default=None, help="Export dashboard JSON to this file")
     args = parser.parse_args()
 
@@ -79,7 +139,7 @@ def main():
         export_dashboard(dashboard_body, args.output)
 
     if args.deploy:
-        deploy_dashboard(args.name, dashboard_body)
+        deploy_dashboard(args.name, dashboard_body, update=args.update)
 
     if not args.output and not args.deploy:
         print("\nDashboard JSON preview:")

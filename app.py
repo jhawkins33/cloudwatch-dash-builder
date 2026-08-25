@@ -78,10 +78,12 @@ if "resources" in st.session_state:
     col_deploy, col_export = st.columns(2)
 
     with col_deploy:
+        update_mode = st.checkbox("Update mode (merge into existing dashboard)")
         if st.button("Deploy to CloudWatch", type="primary", use_container_width=True):
             with st.spinner("Deploying..."):
-                deploy_dashboard(dashboard_name, dashboard_body)
-            st.success(f"Dashboard '{dashboard_name}' deployed!")
+                deploy_dashboard(dashboard_name, dashboard_body, update=update_mode)
+            action = "updated" if update_mode else "deployed"
+            st.success(f"Dashboard '{dashboard_name}' {action}!")
             st.markdown(
                 f"[Open in CloudWatch](https://us-east-1.console.aws.amazon.com/cloudwatch/home?"
                 f"region=us-east-1#dashboards:name={dashboard_name})"
