@@ -37,6 +37,17 @@ with st.sidebar:
     tag_key = st.text_input("Filter by tag key (optional)", placeholder="e.g. Project")
     tag_value = st.text_input("Filter by tag value (optional)", placeholder="e.g. churn-mlops")
     st.divider()
+    st.divider()
+    auto_refresh = st.checkbox("Auto-refresh", value=False)
+    refresh_interval = st.number_input(
+        "Refresh interval (seconds)",
+        min_value=30,
+        max_value=3600,
+        value=300,
+        step=30,
+        disabled=not auto_refresh,
+    )
+    discover_btn = st.button("Discover Resources", type="primary", use_container_width=True)
     discover_btn = st.button("Discover Resources", type="primary", use_container_width=True)
     tag_key = st.text_input("Filter by tag key (optional)", placeholder="e.g. Project")
     tag_value = st.text_input("Filter by tag value (optional)", placeholder="e.g. churn-mlops")
@@ -98,5 +109,15 @@ if "resources" in st.session_state:
             mime="application/json",
             use_container_width=True,
         )
+        
+# Auto-refresh logic
+if auto_refresh and "resources" in st.session_state:
+    import time
+    refresh_placeholder = st.empty()
+    for remaining in range(int(refresh_interval), 0, -1):
+        refresh_placeholder.caption(f"Auto-refreshing in {remaining}s...")
+        time.sleep(1)
+    refresh_placeholder.empty()
+    st.rerun()
 else:
     st.info("Click **Discover Resources** in the sidebar to get started.")
