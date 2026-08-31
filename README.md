@@ -59,6 +59,9 @@ python src/builder.py --name "MyDashboard" --types lambda firehose
 # Export to JSON for review
 python src/builder.py --name "MyDashboard" --types lambda s3 --output dashboard.json
 
+# Run scheduler (auto-rebuild every 5 minutes)
+python src/scheduler.py --name "AutoDashboard" --interval 300 --update
+
 ```bash
 # Deploy directly to CloudWatch
 python src/builder.py --name "MyDashboard" --deploy
@@ -79,4 +82,4 @@ python src/builder.py --name "MyDashboard" --tag-key Project --tag-value churn-m
 - [x] Add EC2 and RDS support
 - [x] Filter resources by tag (e.g. only show resources tagged `Project=churn-mlops`)
 - [x] Dashboard update mode (update existing rather than replace)
-- [ ] Scheduled auto-refresh (rebuild dashboard as resources change)
+- [x] Scheduled auto-refresh (rebuild dashboard as resources change)
